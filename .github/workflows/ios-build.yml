@@ -1,0 +1,101 @@
+name: iOS self-build (unsigned IPA)
+
+# Self-compiled build for personal use: OPENSOURCE_UNLOCKED unlocks every Pro
+# feature in your own build (intentional, see README/CONTRIBUTING). The IPA is
+# UNSIGNED — install it with AltStore / SideStore / TrollStore, which re-sign
+# it with your own Apple ID. No credentials or signing assets are needed here.
+#
+# OAuth: the official Cloudflare OAuth client and o-c.do relay are NOT for
+# third-party builds. Pass your own client ID + redirect URI when dispatching;
+# empty inputs keep the shipped placeholders (build validation only — the app
+# will not be able to sign in until real values are baked in).
+
+on:
+  workflow_dispatch:
+    inputs:
+      oauth_client_id:
+        description: "Your own Cloudflare OAuth client ID (empty = placeholder build)"
+        required: false
+        default: ""
+      oauth_redirect_uri:
+        description: "Your own relay callback URL, e.g. https://<worker>/oauth/callback"
+        required: false
+        default: ""
+
+jobs:
+  build:
+    runs-on: macos-26
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 26
+        run: |
+          ls /Applications/ | grep -i xcode || true
+          XCODE=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [ -z "$XCODE" ]; then echo "No Xcode 26 found on this runner"; exit 1; fi
+          echo "Using $XCODE"
+          sudo xcode-select -s "$XCODE/Contents/Developer"
+          xcodebuild -version
+
+      - name: Inject OAuth config (only when inputs are given)
+        env:
+          OAUTH_CLIENT_ID: ${{ inputs.oauth_client_id }}
+          OAUTH_REDIRECT_URI: ${{ inputs.oauth_redirect_uri }}
+        run: |
+          FILE="apps/ios/Orange Cloud/Orange Cloud/Core/Auth/OAuthConfig.swift"
+          if [ -n "$OAUTH_CLIENT_ID" ]; then
+            perl -pi -e 's/static let clientID = "[^"]*"/static let clientID = "$ENV{OAUTH_CLIENT_ID}"/' "$FILE"
+          fi
+          if [ -n "$OAUTH_REDIRECT_URI" ]; then
+            perl -pi -e 's|static let redirectURI = "[^"]*"|static let redirectURI = "$ENV{OAUTH_REDIRECT_URI}"|' "$FILE"
+          fi
+          grep -n "static let clientID\|static let redirectURI" "$FILE"
+
+      - name: Verify the unlock flag is in the build settings
+        run: |
+          xcodebuild -project "apps/ios/Orange Cloud/Orange Cloud.xcodeproj" \
+            -scheme "Orange Cloud" -configuration Release \
+            -destination "generic/platform=iOS" -showBuildSettings \
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS="OPENSOURCE_UNLOCKED" \
+            | grep -m1 "SWIFT_ACTIVE_COMPILATION_CONDITIONS"
+
+      - name: Build archive (unsigned, OPENSOURCE_UNLOCKED)
+        run: |
+          set -o pipefail
+          xcodebuild -project "apps/ios/Orange Cloud/Orange Cloud.xcodeproj" \
+            -scheme "Orange Cloud" \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath build/OrangeCloud.xcarchive \
+            archive \
+            CODE_SIGNING_ALLOWED=NO \
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS="OPENSOURCE_UNLOCKED" 2>&1 | tee build.log
+
+      - name: Package unsigned IPA
+        run: |
+          APP=$(find build/OrangeCloud.xcarchive/Products/Applications -maxdepth 1 -name "*.app" | head -1)
+          [ -n "$APP" ] || { echo "no .app found in archive"; exit 1; }
+          echo "APP=$APP"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP/Info.plist"
+          mkdir -p Payload
+          cp -R "$APP" Payload/
+          zip -r -y OrangeCloud-unsigned.ipa Payload
+          unzip -l OrangeCloud-unsigned.ipa | head -20
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: OrangeCloud-unsigned-ipa
+          path: OrangeCloud-unsigned.ipa
+          retention-days: 7
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: OrangeCloud-build-log
+          path: build.log
+          retention-days: 7

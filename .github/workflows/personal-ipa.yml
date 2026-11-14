@@ -1,0 +1,48 @@
+name: Personal unlocked iOS IPA
+
+on:
+  push:
+    branches: [self-build]
+    paths:
+      - apps/ios/**
+      - scripts/build-personal-ipa.sh
+      - .github/workflows/personal-ipa.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode 26
+        shell: bash
+        run: |
+          python3 - <<'PY' >> "$GITHUB_ENV"
+          import pathlib
+          import re
+          apps = [
+              app for app in pathlib.Path("/Applications").glob("Xcode_26*.app")
+              if re.fullmatch(r"Xcode_26(?:\.\d+)*\.app", app.name)
+          ]
+          if not apps:
+              raise SystemExit("Xcode 26 is not installed on this runner")
+          selected = max(
+              apps,
+              key=lambda app: tuple(map(int, re.findall(r"\d+", app.stem)))
+          )
+          print(f"DEVELOPER_DIR={selected}/Contents/Developer")
+          PY
+      - name: Archive and package unsigned IPA
+        run: bash scripts/build-personal-ipa.sh "$GITHUB_WORKSPACE/artifacts/personal-ipa"
+      - name: Upload build output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: OrangeCloud-personal-unlocked-unsigned
+          path: artifacts/personal-ipa/
+          if-no-files-found: error
+          retention-days: 1

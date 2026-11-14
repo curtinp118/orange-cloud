@@ -13,7 +13,7 @@ import SwiftData
 @MainActor
 enum BackgroundRefresh {
 
-    static let taskIdentifier = "jiamin.chen.Orange-Cloud.refresh"
+    static let taskIdentifier = "com.curtinp118.orangecloud.refresh"
 
     /// 已注册标记：BGTaskScheduler 同一标识符重复注册会直接崩溃，注册必须幂等
     private static var didRegister = false

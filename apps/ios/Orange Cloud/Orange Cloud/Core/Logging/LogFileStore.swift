@@ -13,7 +13,7 @@ nonisolated final class LogFileStore: @unchecked Sendable {
 
     static let shared = LogFileStore()
 
-    private let queue = DispatchQueue(label: "jiamin.chen.orange-cloud.logfile")
+    private let queue = DispatchQueue(label: "com.curtinp118.orangecloud.logfile")
     private let fileManager = FileManager.default
     private let maxBytes = 256 * 1024          // 单文件上限，两代约 512KB
     private let isoFormatter: ISO8601DateFormatter

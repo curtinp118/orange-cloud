@@ -5,6 +5,7 @@ on:
     branches: [self-build, "codex/personal-ipa-*"]
     paths:
       - apps/ios/**
+      - apps/oauth-relay/**
       - scripts/build-personal-ipa.sh
       - .github/workflows/personal-ipa.yml
   workflow_dispatch:
@@ -14,10 +15,12 @@ permissions:
 
 jobs:
   build:
-    runs-on: macos-26
+    runs-on: macos-26-intel
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+      - name: Test personal OAuth callback relay
+        run: node --test apps/oauth-relay/worker.test.mjs
       - name: Select Xcode 26
         shell: bash
         run: |

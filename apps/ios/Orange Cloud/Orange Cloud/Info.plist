@@ -16,7 +16,7 @@
 			<string>OAuth Callback</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>orangecloud</string>
+				<string>curtinp118orangecloud</string>
 			</array>
 		</dict>
 	</array>

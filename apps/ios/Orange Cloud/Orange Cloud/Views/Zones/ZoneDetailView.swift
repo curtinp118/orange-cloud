@@ -120,7 +120,7 @@ struct ZoneDetailView: View {
         }
     }
 
-    var body: some View {
+    private var decoratedContent: some View {
         zoneContent
         .background { SkyBackground() }
         .navigationTitle(zone.name)
@@ -146,6 +146,10 @@ struct ZoneDetailView: View {
         .sensoryFeedback(.impact(weight: .light), trigger: zone.pinned)
         .sensoryFeedback(.success, trigger: actionsViewModel.didPurge)
         .sensoryFeedback(.success, trigger: actionsViewModel.didInvalidate)
+    }
+
+    private var refreshedContent: some View {
+        decoratedContent
         .task {
             if canReadSettings {
                 await actionsViewModel.loadSettings()
@@ -189,12 +193,13 @@ struct ZoneDetailView: View {
             }
             await syncPausedFromAPI()
         }
+    }
+
+    private var actionDialogs: some View {
+        refreshedContent
         .confirmationDialog(
             pendingAction?.title ?? "",
-            isPresented: .init(
-                get: { pendingAction != nil },
-                set: { if !$0 { pendingAction = nil } }
-            ),
+            isPresented: pendingActionPresented,
             titleVisibility: .visible,
             presenting: pendingAction
         ) { action in
@@ -225,6 +230,10 @@ struct ZoneDetailView: View {
         } message: {
             Text("边缘节点将在数秒内完成清理。")
         }
+    }
+
+    private var cacheDialogs: some View {
+        actionDialogs
         .confirmationDialog("标记过期", isPresented: $showInvalidateConfirm, titleVisibility: .visible) {
             Button("标记过期") {
                 Task { await actionsViewModel.purgeCache(action: .invalidate) }
@@ -254,6 +263,10 @@ struct ZoneDetailView: View {
         .onChange(of: actionsViewModel.didInvalidate) {
             showInvalidateDone = true
         }
+    }
+
+    var body: some View {
+        cacheDialogs
         .alert("权限不足", isPresented: $showActionDenied) {
             if let sessionId = auth.currentSessionId, !deniedScopeHint.isEmpty {
                 Button("一键重授权") {
@@ -721,6 +734,15 @@ struct ZoneDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+    }
+
+    private var pendingActionPresented: Binding<Bool> {
+        Binding<Bool>(
+            get: { pendingAction != nil },
+            set: { presented in
+                if !presented { pendingAction = nil }
+            }
+        )
     }
 
     private var actionErrorPresented: Binding<Bool> {

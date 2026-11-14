@@ -2,7 +2,7 @@ name: Personal unlocked iOS IPA
 
 on:
   push:
-    branches: [self-build]
+    branches: [self-build, "codex/personal-ipa-*"]
     paths:
       - apps/ios/**
       - scripts/build-personal-ipa.sh

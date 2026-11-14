@@ -13,7 +13,8 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
 输出保存在 `artifacts/personal-ipa-<时间>/`，包括未签名 IPA、SHA-256、
 构建日志和构建信息。一次性中间文件在脚本结束时清理。
 
-`self-build` 分支的相关源码变更也会触发 GitHub Actions 的 macOS 构建。
+`self-build` 和 `codex/personal-ipa-*` 分支的相关源码变更也会触发
+GitHub Actions 的 macOS 构建。
 输出仅保留一天，不创建公开 Release。
 
 IPA 面向 iPhone/iPad 真机，保留 Apple Watch 配套 App 和扩展。

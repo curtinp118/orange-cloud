@@ -71,7 +71,8 @@ jobs:
             -archivePath build/OrangeCloud.xcarchive \
             archive \
             CODE_SIGNING_ALLOWED=NO \
-            SWIFT_ACTIVE_COMPILATION_CONDITIONS="OPENSOURCE_UNLOCKED" 2>&1 | tee build.log
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS="OPENSOURCE_UNLOCKED" \
+            OTHER_SWIFT_FLAGS="-Xfrontend -solver-expression-time-threshold=5000" 2>&1 | tee build.log
 
       - name: Package unsigned IPA
         run: |

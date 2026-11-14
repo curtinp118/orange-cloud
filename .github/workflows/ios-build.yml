@@ -30,10 +30,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Select Xcode 26
+      - name: Select Xcode 26.3
         run: |
           ls /Applications/ | grep -i xcode || true
-          XCODE=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          # Xcode 26.6's Swift compiler times out type-checking ZoneDetailView
+          # even with a 30s solver threshold; the code was written against
+          # earlier 26.x toolchains, so pin 26.3 (fall back to any other 26.x).
+          if [ -d /Applications/Xcode_26.3.app ]; then
+            XCODE=/Applications/Xcode_26.3.app
+          else
+            XCODE=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | head -1)
+          fi
           if [ -z "$XCODE" ]; then echo "No Xcode 26 found on this runner"; exit 1; fi
           echo "Using $XCODE"
           sudo xcode-select -s "$XCODE/Contents/Developer"

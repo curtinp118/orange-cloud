@@ -2,6 +2,8 @@
 
 此分支在主 App 的 Debug、Release 配置中启用了作者提供的
 `OPENSOURCE_UNLOCKED`，使用上游自编译版的 Pro 解锁逻辑。
+域名详情页的各个分区和错误弹窗绑定已拆为独立表达式，避免
+Xcode 26.6 在 Release 归档时对原有超长 SwiftUI `body` 类型推断超时。
 
 本机构建需要完整 Xcode 26 或更高版本、iOS SDK、watchOS SDK：
 
